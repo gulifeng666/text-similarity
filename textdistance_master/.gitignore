@@ -1,0 +1,12 @@
+*.egg-info
+__pycache__
+*.pyc
+build/
+dist/
+.tox/
+licenses_example/choosealicense.com
+.hypothesis/
+.coverage
+htmlcov
+.task/
+venvs/
