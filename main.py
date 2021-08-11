@@ -63,7 +63,6 @@ for pipeline_key,pipeline_value in config['pipeline'].items():
         else:
             raise NameError
         from scipy.sparse import coo_matrix
-
         for model_key in map(lambda x:x.strip(),pipeline_value['model'].keys()):
             model_numbers = map(lambda x: x.strip(), pipeline_value['model'][model_key].split(',')) if model_key != 'None' else [None]
             for model_number in model_numbers:
@@ -75,11 +74,9 @@ for pipeline_key,pipeline_value in config['pipeline'].items():
                     transformer_model = AutoModel.from_pretrained(config['models'][model_key][model_number]['name'])#bert-base-uncased')
                     tokenizer = AutoTokenizer.from_pretrained(config['models'][model_key][model_number]['name'])
                     #model(**tokenizer('i want', return_tensors='pt'))
-                    model = lambda x:transformer_model (**tokenizer(x,return_tensors='pt'))[0]
+                    model = lambda x:transformer_model(**tokenizer(x,return_tensors='pt'))[0]
                 elif(model_key == 'word2vec_model'):
-                    model = getattr(gsm,config['models'][model_key][model_number]['name'])()
-
-
+                    model = Word2Vec(**config['models'][model_key][model_number])
                 else:
                     raise NameError
                 for postprocess_name in map(lambda x:x.strip(),pipeline_value['postprocess'].split(',')) :
@@ -93,14 +90,17 @@ for pipeline_key,pipeline_value in config['pipeline'].items():
                       raise NameError
                     for sim_method in tqdm(map(lambda x: x.strip(), pipeline_value['simillarity'].keys())):
                         for sim_method_name in  tqdm(map(lambda x: x.strip(),config['simillarity'][sim_method].split(','))):
-                           sim = getattr(td, sim_method_name)()
+                           sim = getattr(td, sim_method_name)() if 'WMD' not in sim_method_name else getattr(td, sim_method_name)(model)
                            sim = sim.similarity if 'vector' not in sim_method else sim
-                           res = [sim (postprocess(model(preprocess(sentencepair[0]))),postprocess(model(preprocess(sentencepair[1])))) for sentencepair in zip(data_test["sent_1"].tolist(),data_test["sent_2"].tolist())]
+                           res = [sim(postprocess(model(preprocess(sentencepair[0] ))),postprocess(model(preprocess(sentencepair[1])))) for sentencepair in zip(data_test["sent_1"].tolist(),data_test["sent_2"].tolist())]
                            res = list(map(lambda x:-x,res)) if 'vector'  in sim_method else res
-                           pearson_correlation = scipy.stats.pearsonr(res,data_train['sim'].tolist()+data_dev['sim'].tolist()+data_test['sim'].tolist())[0]
-                           spearmanr_correlation = scipy.stats.spearmanr(res,data_train['sim'].tolist()+data_dev['sim'].tolist()+data_test['sim'].tolist())[0]
-                           dataframe[preprocess_name+model_key+sim_method+sim_method_name] = [pearson_correlation,spearmanr_correlation]
-                           dataframe.T.plot.bar()
+                           pearson_correlation = scipy.stats.pearsonr(res,data_test['sim'].tolist())[0]
+                           spearmanr_correlation = scipy.stats.spearmanr(res,data_test['sim'].tolist())[0]
+                           dataframe [preprocess_name+model_key+str(model_number)+sim_method+sim_method_name] = [pearson_correlation,spearmanr_correlation]
+                           plt.rcParams['font.size'] = 5
+
+                           fig = dataframe.T.plot.bar()
+
                            plt.tight_layout()
                            plt.show()
 
@@ -211,9 +211,7 @@ def run_wmd_benchmark(sentences1, sentences2, model, use_stoplist=False):
 
     return sims
 
-#sif
 from sklearn.decomposition import TruncatedSVD
-
 
 def remove_first_principal_component(X):
     svd = TruncatedSVD(n_components=1, n_iter=7, random_state=0)

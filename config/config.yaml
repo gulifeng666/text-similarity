@@ -6,64 +6,60 @@ simillarity:
   sequence: LCSSeq, LCSStr, RatcliffObershelp
   token: Jaccard, Sorensen, Tversky,
     Overlap, Cosine, Tanimoto, MongeElkan, Bag
-  token_vector: WeghtedDistance,AvgDistance,WmdDistance
-  sentence_vector: Chebyshev, Minkowski, Euclidean, Correlation
+  token_vector: WmdDistance
+  sentence_vector: Chebyshev, Minkowski, Euclidean #,Correlation
   compression: ArithNCD,LZMANCD,BZ2NCD,RLENCD,BWTRLENCD,ZLIBNCD,SqrtNCD,EntropyNCD
 models:
   word2vec_model:
     model0:
-       name: word2vec
-       vectors_path: e:/data/word2vec/GoogleNews-vectors-negative300.bin
+       name: Word2Vec
+       vectors_path: resource/GoogleNews-vectors-negative300.bin
        support_similarity: token_vector
+       return_input: True
     model1:
+      name: Word2Vec
+      vectors_path: resource/GoogleNews-vectors-negative300.bin
+      support_similarity: token_vector
+      return_input: False
+    model2:
        name: glove
   gensim_model:
     model0:
        name: LdaModel
+    model1:
+       name: LsiModel
+    model2:
+       name: TfidfModel
   transformer_model:
     model0:
        name: bert-base-uncased
 pipeline:
-  pipeline0:
-    preprocess: tokenlize
-
-    model:
-      gensim_model: model0
-      transformer_model: model0
-      word2vec_model: model0
-    postprocess: Avg,MaxPool
-    simillarity:
-      sentence_vector:
   pipeline1:
     preprocess: None
     model:
       transformer_model: model0
-      word2vec_model: model0
+      word2vec_model: model1
     postprocess: Avg,MaxPool
     simillarity:
       sentence_vector:
+  pipeline0:
+    preprocess: tokenlize
+    model:
+      word2vec_model: model0
+    postprocess: None
+    simillarity:
+      token_vector:
+
   pipeline2:
     preprocess: None
     model:
-       transformer_model: model0
        None:
-       word2vec_model: model0
-       gensim_model:
     postprocess: None
     simillarity:
          edit:
          sequence:
          token:
          compression:
-  pipeline3:
-    preprocess: None
-    model:
-      transformer_model: model0
-      word2vec_model: model0
-      gensim_model:
-    postprocess: None
-    simillarity:
-      token_vector:
 
 
 

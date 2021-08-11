@@ -10,23 +10,34 @@ class BaseModel:
         self.config = config
     def load(self):
         pass
-
     def train(self):
         pass
-
     def __call__(self, sentence_tokens):
         pass
 class Word2Vec(BaseModel):
     def __init__(self,**config):
         super().__init__(**config)
-        self.word2vec_path = config['word2vec']['vectors_path']#"e:/data/word2vec/GoogleNews-vectors-negative300.bin"
-    def __int__(self):
-        self.word2vec = gensim.models.KeyedVectors.load_word2vec_format(self.word2vec_path)
+        self.word2vec_path = config['vectors_path']#"e:/data/word2vec/GoogleNews-vectors-negative300.bin"
+        self.word2vec = gensim.models.KeyedVectors.load_word2vec_format(self.word2vec_path,binary=True )
+        self.config = config
     def train(self):
         raise NotImplementedError
     def __call__(self,sentence_tokens):
-        assert len(sentence_tokens)>=1 and sentence_tokens[0].__class__ == [].__class__
-        return [[self.word2vec[token] for token in tokens] for tokens in sentence_tokens]
+        #assert len(sentence_tokens)>=1 and sentence_tokens[0].__class__ == [].__class__
+        veclist = []
+        wordlist = []
+        for token in sentence_tokens:
+          try:
+            veclist.append(self.word2vec[token.lower()])
+            wordlist.append(token.lower())
+
+          except:
+            pass
+        if(self.config['return_input']==True):
+           veclist=veclist+wordlist
+
+
+        return veclist# for tokens in sentence_tokens]
 class Glove(Word2Vec):
       def __init__(self,**config):
           super().__init__(**config)
@@ -60,7 +71,7 @@ class GensimModel(BaseModel):
            sentence_bow = [self.dic.doc2bow(tokens) for tokens in sentence_tokens]
            res = [self.model[bow] for bow in sentence_bow]
            res = [coo_matrix((np.array([item[1] for item in r]), (np.array([0] * len(r)), np.array([item[0] for item in r]))),shape=(1,100)).toarray().T for r in res]
-           return np.array(res)
+           return np.array(res).reshape(len(res),-1)
 
 
 # class SentenceEncoder(BaseModel):
