@@ -1,4 +1,4 @@
-from .base import Base as _Base, BaseSimilarity as _BaseSimilarity
+from textdistance_master.textdistance.algorithms.base import Base as _Base, BaseSimilarity as _BaseSimilarity
 import numpy as np
 from gensim.corpora import dictionary
 from numpy import (

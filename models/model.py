@@ -15,6 +15,8 @@ class BaseModel:
     def __call__(self, sentence_tokens):
         pass
 class Word2Vec(BaseModel):
+
+
     def __init__(self,**config):
         super().__init__(**config)
         self.word2vec_path = config['vectors_path']#"e:/data/word2vec/GoogleNews-vectors-negative300.bin"
@@ -30,13 +32,10 @@ class Word2Vec(BaseModel):
           try:
             veclist.append(self.word2vec[token.lower()])
             wordlist.append(token.lower())
-
           except:
             pass
         if(self.config['return_input']==True):
            veclist=veclist+wordlist
-
-
         return veclist# for tokens in sentence_tokens]
 class Glove(Word2Vec):
       def __init__(self,**config):
@@ -50,7 +49,6 @@ class Glove(Word2Vec):
           glove2word2vec(glove_file, tmp_file)
           self.word2vec = gensim.models.KeyedVectors.load_word2vec_format(tmp_file)
           return self.word2vec
-
 from scipy.sparse import coo_matrix
 class GensimModel(BaseModel):
     dic = None

@@ -7,7 +7,7 @@ simillarity:
   token: Jaccard, Sorensen, Tversky,
     Overlap, Cosine, Tanimoto, MongeElkan, Bag
   token_vector: WmdDistance
-  sentence_vector: Chebyshev, Minkowski, Euclidean #,Correlation
+  sentence_vector: VectorCosine,Euclidean,Chebyshev,Minkowski #,Correlation
   compression: ArithNCD,LZMANCD,BZ2NCD,RLENCD,BWTRLENCD,ZLIBNCD,SqrtNCD,EntropyNCD
 models:
   word2vec_model:
@@ -35,13 +35,20 @@ models:
        name: bert-base-uncased
 pipeline:
   pipeline1:
-    preprocess: None
+    preprocess: tokenlize
     model:
-      transformer_model: model0
       word2vec_model: model1
     postprocess: Avg,MaxPool
     simillarity:
       sentence_vector:
+  pipeline3:
+    preprocess: move_stopword
+    model:
+      transformer_model: model0
+    postprocess: SelectOne,Avg,MaxPool
+    simillarity:
+      sentence_vector:
+
   pipeline0:
     preprocess: tokenlize
     model:
@@ -51,7 +58,7 @@ pipeline:
       token_vector:
 
   pipeline2:
-    preprocess: None
+    preprocess: move_stopword
     model:
        None:
     postprocess: None

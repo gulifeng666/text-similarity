@@ -57,7 +57,23 @@ class Manhattan(_Base):
     def __call__(self, s1, s2):
         raise NotImplementedError
 
+from sklearn.metrics.pairwise import paired_cosine_distances
+class VectorCosine(_Base):
+    def __init__(self, squared=False):
+        self.squared = squared
 
+    def _numpy(self, s1, s2):
+        s1 = numpy.asarray(s1)
+
+        s2 = numpy.asarray(s2)
+        return paired_cosine_distances(s1.reshape(1,-1),s2.reshape(1,-1))[0]
+
+    def _pure(self, s1, s2):
+        raise NotImplementedError
+
+    def __call__(self, s1, s2):
+        if numpy:
+            return self._numpy(s1, s2)
 class Euclidean(_Base):
     def __init__(self, squared=False):
         self.squared = squared

@@ -15,7 +15,9 @@ class DataLoader:
     def load_sts(self):
         sts_dev = self.load_sts_dataset(os.path.join("data/stsbenchmark", "sts-dev.csv"))
         sts_test = self.load_sts_dataset(os.path.join("data/stsbenchmark", "sts-test.csv"))
-        return sts_dev,None,sts_test
+        sts_train = self.load_sts_dataset(os.path.join("data/stsbenchmark", "sts-train.csv"))
+
+        return sts_train,sts_dev,sts_test
     def load_sick_datatset(self,file):
         with open(file) as f:
             lines = f.readlines()[1:]

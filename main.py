@@ -1,9 +1,9 @@
+import itertools
 import pandas as pd
 import numpy as np
 import scipy
 import math
 import os
-#import tensorflow as tf
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
@@ -12,10 +12,15 @@ import yaml
 import seaborn
 from tqdm import tqdm
 import nltk
+import re
+
 import textdistance_master.textdistance as td
 from transformers.pipelines import Pipeline
 from transformers import AutoModel,AutoConfig,AutoTokenizer,AutoFeatureExtractor,AutoModelForTokenClassification,AutoModelWithLMHead
 import gensim
+import mlflow
+from mlflow import log_metric, log_param, log_artifacts
+from random import random, randint
 
 def load_sts_dataset(filename):
     # Loads a subset of the STS dataset into a DataFrame. In particular both
@@ -44,20 +49,20 @@ from  dataloader.dataloader import DataLoader
 from models.model import Word2Vec,GensimModel
 config = yaml.load(open('config/config.yaml'))
 data_loader = DataLoader()
-data_train,data_dev,data_test = data_loader.load_sick()
-data_train =data_train[:10]
-data_dev = data_dev[:10]
-data_test = data_test[:10]
+data_train,data_dev,data_test = data_loader.load_sts()
+track = True
 #word2vec = Word2Vec(config['models']['word2vec_model'])
 #gensim_models = [GensimModel(config['gensim_model']['model'+str(i)] for i in range(len(list(filter(lambda x:'model' in x,config['gensim_model'].keys())))))]
-GensimModel.build_dictionary([nltk.word_tokenize(sentence) for sentence in data_train['sent_1'].tolist()+data_train['sent_2'].tolist()+data_dev['sent_1'].tolist()+data_dev['sent_2'].tolist()])
+GensimModel.build_dictionary([nltk.word_tokenize(sentence) for sentence in data_train['sent_1'].tolist()+data_train['sent_2'].tolist()])
+#GensimModel.build_dictionary([nltk.word_tokenize(sentence) for sentence in data_train['sent_1'].tolist()+data_train['sent_2'].tolist()+data_dev['sent_1'].tolist()+data_dev['sent_2'].tolist()])
 dataframe = pd.DataFrame(index = ['pearson','spearmanr'])
+totalnum=0
 for pipeline_key,pipeline_value in config['pipeline'].items():
     for preprocess_name in map(lambda x:x.strip(),pipeline_value['preprocess'].split(',')):
         if(preprocess_name=='None'):
             preprocess = lambda x:x
         elif(preprocess_name == 'move_stopword'):
-            preprocess = lambda x:x
+            preprocess = lambda x: re.sub('[,.*?!()";]','',x)
         elif(preprocess_name == 'tokenlize'):
             preprocess = lambda x:nltk.word_tokenize(x)
         else:
@@ -86,23 +91,38 @@ for pipeline_key,pipeline_value in config['pipeline'].items():
                         postprocess = lambda x:np.mean(x.detach().numpy() if type(x)==torch.Tensor else x,-2)
                     elif(postprocess_name=='MaxPool'):
                         postprocess = lambda x:np.max(x.detach().numpy() if type(x)==torch.Tensor else x,-2)
+                    elif(postprocess_name=='SelectOne'):
+                        postprocess = lambda x:x.detach().numpy()[:,0]
+
                     else:
                       raise NameError
                     for sim_method in tqdm(map(lambda x: x.strip(), pipeline_value['simillarity'].keys())):
                         for sim_method_name in  tqdm(map(lambda x: x.strip(),config['simillarity'][sim_method].split(','))):
                            sim = getattr(td, sim_method_name)() if 'WMD' not in sim_method_name else getattr(td, sim_method_name)(model)
                            sim = sim.similarity if 'vector' not in sim_method else sim
-                           res = [sim(postprocess(model(preprocess(sentencepair[0] ))),postprocess(model(preprocess(sentencepair[1])))) for sentencepair in zip(data_test["sent_1"].tolist(),data_test["sent_2"].tolist())]
+                           res = [sim(postprocess(model(preprocess(sentencepair[0]))),postprocess(model(preprocess(sentencepair[1])))) for sentencepair in zip(data_test["sent_1"].tolist(),data_test["sent_2"].tolist())]
                            res = list(map(lambda x:-x,res)) if 'vector'  in sim_method else res
                            pearson_correlation = scipy.stats.pearsonr(res,data_test['sim'].tolist())[0]
                            spearmanr_correlation = scipy.stats.spearmanr(res,data_test['sim'].tolist())[0]
-                           dataframe [preprocess_name+model_key+str(model_number)+sim_method+sim_method_name] = [pearson_correlation,spearmanr_correlation]
-                           plt.rcParams['font.size'] = 5
+                           if(track):
+                               with mlflow.start_run():
+                                   log_param('dataset','sts')
+                                   log_param('pipelinekey',pipeline_key)
+                                   log_param('preprocess',preprocess_name)
+                                   log_param('model_key',model_key)
+                                   log_param('modelnumber',str(model_number))
+                                   log_param('postprocess',postprocess_name)
+                                   log_param('sim_method',sim_method)
+                                   log_param('sim_method_name',sim_method_name)
+                                   log_metric('pearson',pearson_correlation)
+                                   log_metric('spearmanr',spearmanr_correlation)
+                               dataframe [str(totalnum)+'_'+pipeline_key+preprocess_name+model_key+str(model_number)+postprocess_name+sim_method+sim_method_name] = [pearson_correlation,spearmanr_correlation]
+                               plt.rcParams['font.size'] = 8
+                               totalnum+=1
+                               fig = dataframe.T.plot.bar()
 
-                           fig = dataframe.T.plot.bar()
-
-                           plt.tight_layout()
-                           plt.show()
+                               plt.tight_layout()
+                               plt.show()
 
 # sick_train = download_sick("https://raw.githubusercontent.com/alvations/stasis/master/SICK-data/SICK_train.txt")
 # sick_dev = download_sick("https://raw.githubusercontent.com/alvations/stasis/master/SICK-data/SICK_trial.txt")
@@ -111,6 +131,7 @@ for pipeline_key,pipeline_value in config['pipeline'].items():
 import math
 from gensim import corpora, models, similarities
 import nltk
+track = True
 sick_train_list = sick_train['sent_1'].to_list()+sick_train['sent_2'].to_list()
 sick_train_tokens = [nltk.word_tokenize(sick_train_text) for sick_train_text in sick_train_list]
 dic = corpora.Dictionary(sick_train_tokens)
