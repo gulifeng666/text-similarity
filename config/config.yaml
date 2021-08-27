@@ -34,6 +34,24 @@ models:
     model0:
        name: bert-base-uncased
 pipeline:
+  pipeline2:
+    preprocess: move_stopword
+    model:
+       None:
+    postprocess: None
+    simillarity:
+         compression:
+         edit:
+         sequence:
+         token:
+
+  pipeline3:
+    preprocess: move_stopword
+    model:
+      transformer_model: model0
+    postprocess: MaxPool,SelectOne,Avg
+    simillarity:
+      sentence_vector:
   pipeline1:
     preprocess: tokenlize
     model:
@@ -41,14 +59,6 @@ pipeline:
     postprocess: Avg,MaxPool
     simillarity:
       sentence_vector:
-  pipeline3:
-    preprocess: move_stopword
-    model:
-      transformer_model: model0
-    postprocess: SelectOne,Avg,MaxPool
-    simillarity:
-      sentence_vector:
-
   pipeline0:
     preprocess: tokenlize
     model:
@@ -57,16 +67,7 @@ pipeline:
     simillarity:
       token_vector:
 
-  pipeline2:
-    preprocess: move_stopword
-    model:
-       None:
-    postprocess: None
-    simillarity:
-         edit:
-         sequence:
-         token:
-         compression:
+
 
 
 

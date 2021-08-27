@@ -49,7 +49,7 @@ from  dataloader.dataloader import DataLoader
 from models.model import Word2Vec,GensimModel
 config = yaml.load(open('config/config.yaml'))
 data_loader = DataLoader()
-data_train,data_dev,data_test = data_loader.load_sts()
+data_train,data_dev,data_test = data_loader.load_sick()
 track = True
 #word2vec = Word2Vec(config['models']['word2vec_model'])
 #gensim_models = [GensimModel(config['gensim_model']['model'+str(i)] for i in range(len(list(filter(lambda x:'model' in x,config['gensim_model'].keys())))))]
@@ -93,7 +93,6 @@ for pipeline_key,pipeline_value in config['pipeline'].items():
                         postprocess = lambda x:np.max(x.detach().numpy() if type(x)==torch.Tensor else x,-2)
                     elif(postprocess_name=='SelectOne'):
                         postprocess = lambda x:x.detach().numpy()[:,0]
-
                     else:
                       raise NameError
                     for sim_method in tqdm(map(lambda x: x.strip(), pipeline_value['simillarity'].keys())):
@@ -106,7 +105,7 @@ for pipeline_key,pipeline_value in config['pipeline'].items():
                            spearmanr_correlation = scipy.stats.spearmanr(res,data_test['sim'].tolist())[0]
                            if(track):
                                with mlflow.start_run():
-                                   log_param('dataset','sts')
+                                   log_param('dataset','sick')
                                    log_param('pipelinekey',pipeline_key)
                                    log_param('preprocess',preprocess_name)
                                    log_param('model_key',model_key)
@@ -117,10 +116,9 @@ for pipeline_key,pipeline_value in config['pipeline'].items():
                                    log_metric('pearson',pearson_correlation)
                                    log_metric('spearmanr',spearmanr_correlation)
                                dataframe [str(totalnum)+'_'+pipeline_key+preprocess_name+model_key+str(model_number)+postprocess_name+sim_method+sim_method_name] = [pearson_correlation,spearmanr_correlation]
-                               plt.rcParams['font.size'] = 8
+                               plt.rcParams['font.size'] = 7
                                totalnum+=1
                                fig = dataframe.T.plot.bar()
-
                                plt.tight_layout()
                                plt.show()
 
