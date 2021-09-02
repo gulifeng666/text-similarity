@@ -99,6 +99,7 @@ for pipeline_key,pipeline_value in config['pipeline'].items():
                         for sim_method_name in  tqdm(map(lambda x: x.strip(),config['simillarity'][sim_method].split(','))):
                            sim = getattr(td, sim_method_name)() if 'WMD' not in sim_method_name else getattr(td, sim_method_name)(model)
                            sim = sim.similarity if 'vector' not in sim_method else sim
+                           data_test = data_test[:100]
                            res = [sim(postprocess(model(preprocess(sentencepair[0]))),postprocess(model(preprocess(sentencepair[1])))) for sentencepair in zip(data_test["sent_1"].tolist(),data_test["sent_2"].tolist())]
                            res = list(map(lambda x:-x,res)) if 'vector'  in sim_method else res
                            pearson_correlation = scipy.stats.pearsonr(res,data_test['sim'].tolist())[0]
@@ -115,12 +116,13 @@ for pipeline_key,pipeline_value in config['pipeline'].items():
                                    log_param('sim_method_name',sim_method_name)
                                    log_metric('pearson',pearson_correlation)
                                    log_metric('spearmanr',spearmanr_correlation)
-                               dataframe [str(totalnum)+'_'+pipeline_key+preprocess_name+model_key+str(model_number)+postprocess_name+sim_method+sim_method_name] = [pearson_correlation,spearmanr_correlation]
-                               plt.rcParams['font.size'] = 7
-                               totalnum+=1
-                               fig = dataframe.T.plot.bar()
-                               plt.tight_layout()
-                               plt.show()
+                                   dataframe [str(totalnum)+'_'+pipeline_key+preprocess_name+model_key+str(model_number)+postprocess_name+sim_method+sim_method_name] = [pearson_correlation,spearmanr_correlation]
+                                   plt.rcParams['font.size'] = 7
+                                   #plt.text(fontdict = {'weight' :'black'})
+                                   totalnum+=1
+                                   fig = dataframe.T.plot.bar()
+                                   plt.tight_layout()
+                                   plt.show()
 
 # sick_train = download_sick("https://raw.githubusercontent.com/alvations/stasis/master/SICK-data/SICK_train.txt")
 # sick_dev = download_sick("https://raw.githubusercontent.com/alvations/stasis/master/SICK-data/SICK_trial.txt")
